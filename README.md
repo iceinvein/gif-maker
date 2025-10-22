@@ -261,14 +261,14 @@ bun run lint
 
 The Video to GIF Converter requires a modern browser with the following features:
 
-| Browser | Minimum Version | Status |
-|---------|----------------|--------|
-| Chrome | 90+ | ✅ Fully Supported |
-| Edge | 90+ | ✅ Fully Supported |
-| Firefox | 88+ | ✅ Fully Supported |
-| Safari | 15+ | ✅ Fully Supported |
-| iOS Safari | iOS 15+ | ✅ Fully Supported |
-| Chrome Mobile | 90+ | ✅ Fully Supported |
+| Browser       | Minimum Version | Status            |
+| ------------- | --------------- | ----------------- |
+| Chrome        | 90+             | ✅ Fully Supported |
+| Edge          | 90+             | ✅ Fully Supported |
+| Firefox       | 88+             | ✅ Fully Supported |
+| Safari        | 15+             | ✅ Fully Supported |
+| iOS Safari    | iOS 15+         | ✅ Fully Supported |
+| Chrome Mobile | 90+             | ✅ Fully Supported |
 
 ### Required Browser Features
 
