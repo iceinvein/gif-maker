@@ -1,13 +1,7 @@
-import { Route, Routes } from "react-router-dom";
-
-import IndexPage from "@/pages/index";
+import VideoConverterPage from "@/pages/video-converter";
 
 function App() {
-	return (
-		<Routes>
-			<Route element={<IndexPage />} path="/" />
-		</Routes>
-	);
+	return <VideoConverterPage />;
 }
 
 export default App;

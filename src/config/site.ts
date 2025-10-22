@@ -1,18 +1,27 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-	name: "Vite + HeroUI",
-	description: "Your app description",
+	name: "Video to GIF",
+	description:
+		"Convert your videos to high-quality GIF animations right in your browser",
 	navItems: [
 		{
 			label: "Home",
 			href: "/",
+		},
+		{
+			label: "Converter",
+			href: "/converter",
 		},
 	],
 	navMenuItems: [
 		{
 			label: "Home",
 			href: "/",
+		},
+		{
+			label: "Converter",
+			href: "/converter",
 		},
 	],
 	links: {
