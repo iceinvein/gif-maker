@@ -1,14 +1,16 @@
 import { Button } from "@heroui/button";
 import { Card, CardBody } from "@heroui/card";
-import { motion, AnimatePresence } from "framer-motion";
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { BrowserCompatibilityWarning } from "@/components/browser-compatibility-warning";
 import { ConversionControls } from "@/components/conversion-controls";
 import { ConversionProgress } from "@/components/conversion-progress";
 import { ErrorMessage } from "@/components/error-message";
 import { FileSizeWarning } from "@/components/file-size-warning";
 import { FileUploadZone } from "@/components/file-upload-zone";
-import { VideoPreview } from "@/components/video-preview";
+import { KeyboardShortcutsOverlay } from "@/components/keyboard-shortcuts-overlay";
+import { VideoPreview, type VideoPreviewRef } from "@/components/video-preview";
+import { VideoTimeline } from "@/components/video-timeline";
 import DefaultLayout from "@/layouts/default";
 import ffmpegService from "@/services/ffmpeg-service";
 import type { ConversionSettings, ErrorState, VideoMetadata } from "@/types";
@@ -56,6 +58,8 @@ const initialState: ConverterState = {
 		frameRate: 15,
 		width: 800,
 		height: 600,
+		startTime: 0,
+		endTime: 0,
 	},
 	conversionStatus: "idle",
 	progress: 0,
@@ -93,6 +97,8 @@ function converterReducer(
 					...state.settings,
 					width: defaultWidth,
 					height: defaultHeight,
+					startTime: 0,
+					endTime: action.payload.duration,
 				},
 			};
 		}
@@ -152,6 +158,9 @@ export default function VideoConverterPage() {
 	const [browserCompatibility, setBrowserCompatibility] = useState(() =>
 		checkBrowserCompatibility(),
 	);
+	const [currentVideoTime, setCurrentVideoTime] = useState(0);
+	const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
+	const videoPreviewRef = useRef<VideoPreviewRef>(null);
 
 	// Lazy load FFmpeg only when user attempts to convert
 	// Performance: Lazy loading - FFmpeg is only loaded when first needed
@@ -250,6 +259,97 @@ export default function VideoConverterPage() {
 	// Settings change handler
 	const handleSettingsChange = useCallback((settings: ConversionSettings) => {
 		dispatch({ type: "UPDATE_SETTINGS", payload: settings });
+	}, []);
+
+	// Timeline trim handler
+	const handleTimeRangeChange = useCallback(
+		(startTime: number, endTime: number) => {
+			dispatch({
+				type: "UPDATE_SETTINGS",
+				payload: { startTime, endTime },
+			});
+		},
+		[],
+	);
+
+	// Video time update handler
+	const handleVideoTimeUpdate = useCallback((time: number) => {
+		setCurrentVideoTime(time);
+	}, []);
+
+	// Timeline seek handler
+	const handleTimelineSeek = useCallback((time: number) => {
+		videoPreviewRef.current?.seek(time);
+	}, []);
+
+	// Keyboard shortcuts for video control and help overlay
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Don't trigger if user is typing in an input field
+			if (
+				e.target instanceof HTMLInputElement ||
+				e.target instanceof HTMLTextAreaElement
+			) {
+				return;
+			}
+
+			// Help overlay toggle with "?"
+			if (e.key === "?" || e.key === "/") {
+				e.preventDefault();
+				setShowShortcutsOverlay((prev) => !prev);
+				return;
+			}
+
+			const video = videoPreviewRef.current?.getVideoElement();
+			if (!video) return;
+
+			switch (e.key) {
+				case " ": {
+					e.preventDefault();
+					videoPreviewRef.current?.togglePlayPause();
+					break;
+				}
+				case "ArrowLeft": {
+					e.preventDefault();
+					// Move back 1 second (or 0.1 seconds with Shift)
+					const backwardAmount = e.shiftKey ? 0.1 : 1;
+					const newTimeBackward = Math.max(
+						0,
+						video.currentTime - backwardAmount,
+					);
+					videoPreviewRef.current?.seek(newTimeBackward);
+					break;
+				}
+				case "ArrowRight": {
+					e.preventDefault();
+					// Move forward 1 second (or 0.1 seconds with Shift)
+					const forwardAmount = e.shiftKey ? 0.1 : 1;
+					const newTimeForward = Math.min(
+						video.duration,
+						video.currentTime + forwardAmount,
+					);
+					videoPreviewRef.current?.seek(newTimeForward);
+					break;
+				}
+				case "ArrowUp": {
+					e.preventDefault();
+					// Move forward 5 seconds
+					const newTimeUp = Math.min(video.duration, video.currentTime + 5);
+					videoPreviewRef.current?.seek(newTimeUp);
+					break;
+				}
+				case "ArrowDown": {
+					e.preventDefault();
+					// Move back 5 seconds
+					const newTimeDown = Math.max(0, video.currentTime - 5);
+					videoPreviewRef.current?.seek(newTimeDown);
+					break;
+				}
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
 
 	// Conversion workflow orchestration
@@ -386,57 +486,405 @@ export default function VideoConverterPage() {
 
 	const isConverting = state.conversionStatus === "processing";
 	const isLoading = state.conversionStatus === "loading";
-	// Performance: Allow conversion even if FFmpeg not loaded (lazy loading)
-	const canConvert =
-		state.uploadedFile && state.videoMetadata && !isConverting && !isLoading;
 
 	return (
-		<DefaultLayout>
-			<div className="flex flex-col h-[calc(100vh-64px)]">
-				{/* Toolbar */}
-				{state.uploadedFile && state.videoMetadata && (
-					<div className="border-b border-divider bg-content1">
-						<div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
-							<div className="flex flex-wrap items-center gap-3 sm:gap-4">
-								{/* File info */}
-								<div className="flex items-center gap-2 min-w-0 flex-1">
-									<svg
-										className="w-5 h-5 text-default-400 flex-shrink-0"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-										/>
-									</svg>
-									<span className="text-sm font-medium text-foreground truncate">
-										{state.uploadedFile.name}
-									</span>
-								</div>
+		<>
+			{/* Keyboard Shortcuts Overlay */}
+			<KeyboardShortcutsOverlay
+				isOpen={showShortcutsOverlay}
+				onClose={() => setShowShortcutsOverlay(false)}
+			/>
 
-								{/* Action buttons */}
-								<div className="flex items-center gap-2">
-									{!state.gifBlob && (
+			<DefaultLayout onHelpClick={() => setShowShortcutsOverlay(true)}>
+				<div className="min-h-screen bg-linear-to-br from-background via-background to-primary-50/30 dark:to-primary-950/10">
+					{/* Sticky action bar - positioned at top level for proper stickiness */}
+					{state.uploadedFile && state.videoMetadata && !state.gifBlob && (
+						<motion.div
+							initial={{ opacity: 0, y: -10 }}
+							animate={{ opacity: 1, y: 0 }}
+							className="sticky top-16 z-20 border-divider/50 border-b bg-content1/95 shadow-lg shadow-primary-500/10 backdrop-blur-xl"
+						>
+							<div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
+								<div className="flex flex-wrap items-center justify-between gap-4">
+									<div className="flex min-w-0 flex-1 items-center gap-3">
+										<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 dark:bg-primary-900/30">
+											<svg
+												className="h-5 w-5 text-primary-600 dark:text-primary-400"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+												/>
+											</svg>
+										</div>
+										<div className="min-w-0 flex-1">
+											<div className="flex items-center gap-2">
+												<p className="truncate font-semibold text-foreground text-sm">
+													{state.uploadedFile.name}
+												</p>
+												<button
+													type="button"
+													onClick={() => setShowShortcutsOverlay(true)}
+													className="hidden items-center gap-1 rounded-md bg-primary-100 px-2 py-0.5 font-medium text-primary-700 text-xs transition-colors hover:bg-primary-200 sm:flex dark:bg-primary-900/30 dark:text-primary-400 dark:hover:bg-primary-900/50"
+												>
+													<svg
+														className="h-3 w-3"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth={2}
+															d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+														/>
+													</svg>
+													<span>Press ? for shortcuts</span>
+												</button>
+											</div>
+											<p className="text-default-500 text-xs">
+												{state.videoMetadata.width}×{state.videoMetadata.height}{" "}
+												• {state.videoMetadata.duration.toFixed(1)}s
+											</p>
+										</div>
+									</div>
+									<div className="flex items-center gap-2">
 										<Button
 											color="primary"
-											size="sm"
+											size="lg"
 											onPress={handleConvert}
-											isDisabled={!canConvert}
+											isDisabled={
+												!state.uploadedFile ||
+												!state.videoMetadata ||
+												isConverting ||
+												isLoading
+											}
 											isLoading={isConverting || isLoading}
-											className="min-w-[120px]"
+											className="font-semibold shadow-lg shadow-primary-500/30"
+											startContent={
+												!isConverting && (
+													<svg
+														className="h-5 w-5"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth={2}
+															d="M13 10V3L4 14h7v7l9-11h-7z"
+														/>
+													</svg>
+												)
+											}
 										>
 											{isConverting ? "Converting..." : "Convert to GIF"}
 										</Button>
-									)}
-									{state.gifBlob && (
-										<>
+										<Button
+											color="default"
+											variant="flat"
+											size="lg"
+											onPress={handleReset}
+											isIconOnly
+										>
+											<svg
+												className="h-5 w-5"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M6 18L18 6M6 6l12 12"
+												/>
+											</svg>
+										</Button>
+									</div>
+								</div>
+							</div>
+						</motion.div>
+					)}
+
+					{/* Main content area */}
+					<div className="mx-auto max-w-5xl px-4 py-2 sm:px-6 sm:py-4">
+						{/* Warnings */}
+						{!browserCompatibility.isCompatible && (
+							<motion.div
+								initial={{ opacity: 0, y: -10 }}
+								animate={{ opacity: 1, y: 0 }}
+								className="mb-6"
+							>
+								<BrowserCompatibilityWarning
+									missingFeatures={browserCompatibility.missingFeatures}
+								/>
+							</motion.div>
+						)}
+
+						{state.error && (
+							<motion.div
+								initial={{ opacity: 0, y: -10 }}
+								animate={{ opacity: 1, y: 0 }}
+								className="mb-6"
+							>
+								<ErrorMessage
+									error={state.error}
+									onRetry={handleRetry}
+									onReset={handleReset}
+									onDismiss={() => dispatch({ type: "CLEAR_ERROR" })}
+								/>
+							</motion.div>
+						)}
+
+						{state.uploadedFile && (
+							<motion.div
+								initial={{ opacity: 0, y: -10 }}
+								animate={{ opacity: 1, y: 0 }}
+								className="mb-6"
+							>
+								<FileSizeWarning
+									fileSize={state.uploadedFile.size}
+									fileName={state.uploadedFile.name}
+								/>
+							</motion.div>
+						)}
+
+						{/* Upload state - Hero section */}
+						<AnimatePresence mode="wait">
+							{!state.uploadedFile && (
+								<motion.div
+									key="upload"
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									exit={{ opacity: 0, y: -20 }}
+									transition={{ duration: 0.4 }}
+									className="flex min-h-[70vh] flex-col items-center justify-center"
+								>
+									<div className="w-full max-w-3xl space-y-8">
+										<motion.div
+											initial={{ opacity: 0, y: 10 }}
+											animate={{ opacity: 1, y: 0 }}
+											transition={{ delay: 0.1, duration: 0.4 }}
+											className="mb-8 space-y-4 text-center"
+										>
+											<div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-primary-500 to-secondary-500 shadow-lg shadow-primary-500/30">
+												<svg
+													className="h-10 w-10 text-white"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
+												>
+													<path
+														strokeLinecap="round"
+														strokeLinejoin="round"
+														strokeWidth={2}
+														d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
+													/>
+												</svg>
+											</div>
+											<h1 className="bg-linear-to-r from-foreground to-foreground/70 bg-clip-text font-bold text-4xl text-transparent sm:text-5xl">
+												Video to GIF Converter
+											</h1>
+											<p className="mx-auto max-w-xl text-base text-default-600 sm:text-lg">
+												Transform your videos into high-quality GIF animations
+												with professional editing tools
+											</p>
+										</motion.div>
+										<motion.div
+											initial={{ opacity: 0, scale: 0.95 }}
+											animate={{ opacity: 1, scale: 1 }}
+											transition={{ delay: 0.2, duration: 0.4 }}
+										>
+											<FileUploadZone
+												onFileSelect={handleFileSelect}
+												acceptedFormats={ACCEPTED_FORMATS}
+												disabled={isLoading}
+											/>
+										</motion.div>
+
+										{/* Feature highlights */}
+										<motion.div
+											initial={{ opacity: 0, y: 10 }}
+											animate={{ opacity: 1, y: 0 }}
+											transition={{ delay: 0.3, duration: 0.4 }}
+											className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3"
+										>
+											<div className="rounded-xl border border-divider/50 bg-content1/50 p-4 text-center backdrop-blur-sm">
+												<div className="mb-2 text-2xl">⚡</div>
+												<div className="mb-1 font-semibold text-foreground text-sm">
+													Lightning Fast
+												</div>
+												<div className="text-default-500 text-xs">
+													Client-side processing
+												</div>
+											</div>
+											<div className="rounded-xl border border-divider/50 bg-content1/50 p-4 text-center backdrop-blur-sm">
+												<div className="mb-2 text-2xl">🔒</div>
+												<div className="mb-1 font-semibold text-foreground text-sm">
+													100% Private
+												</div>
+												<div className="text-default-500 text-xs">
+													Never leaves your device
+												</div>
+											</div>
+											<div className="rounded-xl border border-divider/50 bg-content1/50 p-4 text-center backdrop-blur-sm">
+												<div className="mb-2 text-2xl">✂️</div>
+												<div className="mb-1 font-semibold text-foreground text-sm">
+													Pro Editing
+												</div>
+												<div className="text-default-500 text-xs">
+													Timeline trimming tools
+												</div>
+											</div>
+										</motion.div>
+									</div>
+								</motion.div>
+							)}
+						</AnimatePresence>
+
+						{/* Working state - Modern single column layout */}
+						{state.uploadedFile && state.videoMetadata && !state.gifBlob && (
+							<motion.div
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								className="space-y-6"
+							>
+								{/* Video preview */}
+								<motion.div
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.1 }}
+								>
+									<VideoPreview
+										ref={videoPreviewRef}
+										file={state.uploadedFile}
+										onMetadataLoad={handleMetadataLoad}
+										onTimeUpdate={handleVideoTimeUpdate}
+									/>
+								</motion.div>
+
+								{/* Timeline */}
+								<motion.div
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.2 }}
+								>
+									<VideoTimeline
+										duration={state.videoMetadata.duration}
+										startTime={state.settings.startTime}
+										endTime={state.settings.endTime}
+										currentTime={currentVideoTime}
+										onTimeRangeChange={handleTimeRangeChange}
+										onSeek={handleTimelineSeek}
+										disabled={isConverting || isLoading}
+									/>
+								</motion.div>
+
+								{/* Conversion controls */}
+								<motion.div
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.3 }}
+								>
+									<ConversionControls
+										videoMetadata={state.videoMetadata}
+										settings={state.settings}
+										onSettingsChange={handleSettingsChange}
+										disabled={isConverting || isLoading}
+									/>
+								</motion.div>
+							</motion.div>
+						)}
+
+						{/* Result state - Modern layout */}
+						{state.uploadedFile && state.videoMetadata && state.gifBlob && (
+							<motion.div
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								className="space-y-6"
+							>
+								{/* Success header */}
+								<motion.div
+									initial={{ opacity: 0, y: -10 }}
+									animate={{ opacity: 1, y: 0 }}
+									className="rounded-2xl border border-success-200/50 bg-linear-to-r from-success-50 to-primary-50 p-6 shadow-lg backdrop-blur-xl dark:border-success-800/50 dark:from-success-950/30 dark:to-primary-950/30"
+								>
+									<div className="flex flex-wrap items-start gap-4">
+										<motion.div
+											initial={{ scale: 0 }}
+											animate={{ scale: 1 }}
+											transition={{
+												type: "spring",
+												stiffness: 200,
+												damping: 10,
+											}}
+											className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-success-500 shadow-lg shadow-success-500/30"
+										>
+											<svg
+												className="h-6 w-6 text-white"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M5 13l4 4L19 7"
+												/>
+											</svg>
+										</motion.div>
+										<div className="min-w-0 flex-1">
+											<h2 className="mb-3 font-bold text-success-700 text-xl dark:text-success-400">
+												Conversion Complete!
+											</h2>
+											<div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+												<div>
+													<p className="mb-1 text-success-600 text-xs dark:text-success-500">
+														File Size
+													</p>
+													<p className="font-semibold text-success-700 dark:text-success-400">
+														{(state.gifBlob.size / (1024 * 1024)).toFixed(2)} MB
+													</p>
+												</div>
+												<div>
+													<p className="mb-1 text-success-600 text-xs dark:text-success-500">
+														Quality
+													</p>
+													<p className="font-semibold text-success-700 dark:text-success-400">
+														{state.settings.quality}%
+													</p>
+												</div>
+												<div>
+													<p className="mb-1 text-success-600 text-xs dark:text-success-500">
+														Frame Rate
+													</p>
+													<p className="font-semibold text-success-700 dark:text-success-400">
+														{state.settings.frameRate} fps
+													</p>
+												</div>
+												<div>
+													<p className="mb-1 text-success-600 text-xs dark:text-success-500">
+														Dimensions
+													</p>
+													<p className="font-semibold text-success-700 dark:text-success-400">
+														{state.settings.width}×{state.settings.height}
+													</p>
+												</div>
+											</div>
+										</div>
+										<div className="flex flex-col gap-2 sm:flex-row">
 											<Button
-												color="primary"
-												size="sm"
+												color="success"
+												size="lg"
 												onPress={() => {
 													if (!state.gifBlob) return;
 													const url = URL.createObjectURL(state.gifBlob);
@@ -444,18 +892,19 @@ export default function VideoConverterPage() {
 													a.href = url;
 													a.download = state.uploadedFile
 														? state.uploadedFile.name.replace(
-															/\.[^/.]+$/,
-															".gif",
-														)
+																/\.[^/.]+$/,
+																".gif",
+															)
 														: "converted.gif";
 													document.body.appendChild(a);
 													a.click();
 													document.body.removeChild(a);
 													URL.revokeObjectURL(url);
 												}}
+												className="font-semibold shadow-lg shadow-success-500/30"
 												startContent={
 													<svg
-														className="w-4 h-4"
+														className="h-5 w-5"
 														fill="none"
 														stroke="currentColor"
 														viewBox="0 0 24 24"
@@ -474,250 +923,43 @@ export default function VideoConverterPage() {
 											<Button
 												color="default"
 												variant="flat"
-												size="sm"
+												size="lg"
 												onPress={handleReset}
+												className="font-semibold"
 											>
-												New Video
+												Convert Another
 											</Button>
-										</>
-									)}
-								</div>
-							</div>
-						</div>
-					</div>
-				)}
-
-				{/* Main content area */}
-				<div className="flex-1 overflow-auto">
-					<div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-						{/* Warnings */}
-						{!browserCompatibility.isCompatible && (
-							<div className="mb-4">
-								<BrowserCompatibilityWarning
-									missingFeatures={browserCompatibility.missingFeatures}
-								/>
-							</div>
-						)}
-
-						{state.error && (
-							<div className="mb-4">
-								<ErrorMessage
-									error={state.error}
-									onRetry={handleRetry}
-									onReset={handleReset}
-									onDismiss={() => dispatch({ type: "CLEAR_ERROR" })}
-								/>
-							</div>
-						)}
-
-						{state.uploadedFile && (
-							<div className="mb-4">
-								<FileSizeWarning
-									fileSize={state.uploadedFile.size}
-									fileName={state.uploadedFile.name}
-								/>
-							</div>
-						)}
-
-						{/* Upload state */}
-						<AnimatePresence mode="wait">
-							{!state.uploadedFile && (
-								<motion.div
-									key="upload"
-									initial={{ opacity: 0, y: 20 }}
-									animate={{ opacity: 1, y: 0 }}
-									exit={{ opacity: 0, y: -20 }}
-									transition={{ duration: 0.3 }}
-									className="flex flex-col items-center justify-center min-h-[60vh]"
-								>
-									<div className="max-w-2xl w-full space-y-4">
-										<motion.div
-											initial={{ opacity: 0, y: 10 }}
-											animate={{ opacity: 1, y: 0 }}
-											transition={{ delay: 0.1, duration: 0.3 }}
-											className="text-center space-y-2 mb-6"
-										>
-											<h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-												Video to GIF Converter
-											</h1>
-											<p className="text-sm sm:text-base text-default-600">
-												Convert your videos to high-quality GIF animations
-											</p>
-										</motion.div>
-										<motion.div
-											initial={{ opacity: 0, scale: 0.95 }}
-											animate={{ opacity: 1, scale: 1 }}
-											transition={{ delay: 0.2, duration: 0.3 }}
-										>
-											<FileUploadZone
-												onFileSelect={handleFileSelect}
-												acceptedFormats={ACCEPTED_FORMATS}
-												disabled={isLoading}
-											/>
-										</motion.div>
+										</div>
 									</div>
 								</motion.div>
-							)}
-						</AnimatePresence>
 
-						{/* Working state & Result state - Unified layout with smooth transitions */}
-						{state.uploadedFile && state.videoMetadata && (
-							<motion.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]"
-							>
-								{/* Left: Original video - stays in place */}
+								{/* Converted GIF */}
 								<motion.div
-									layout
-									initial={{ opacity: 0, x: -20 }}
+									initial={{ opacity: 0, x: 20 }}
 									animate={{ opacity: 1, x: 0 }}
-									transition={{ delay: 0.1, duration: 0.4 }}
-									className="flex flex-col overflow-hidden"
+									transition={{ delay: 0.2 }}
 								>
-									{state.gifBlob && (
-										<motion.h3
-											initial={{ opacity: 0, y: -10 }}
-											animate={{ opacity: 1, y: 0 }}
-											className="text-xs font-semibold text-default-500 mb-2 px-1"
-										>
-											ORIGINAL VIDEO
-										</motion.h3>
-									)}
-									<div className="flex-1 overflow-hidden">
-										<VideoPreview
-											file={state.uploadedFile}
-											onMetadataLoad={handleMetadataLoad}
-										/>
+									<div className="mb-3">
+										<h3 className="font-semibold text-default-600 text-sm uppercase tracking-wide">
+											Converted GIF
+										</h3>
 									</div>
-								</motion.div>
-
-								{/* Right: Controls OR Result - smooth transition */}
-								<motion.div layout className="flex flex-col overflow-hidden">
-									<AnimatePresence mode="wait">
-										{!state.gifBlob ? (
-											// Controls state
-											<motion.div
-												key="controls"
-												initial={{ opacity: 0, x: 20 }}
-												animate={{ opacity: 1, x: 0 }}
-												exit={{ opacity: 0, x: -20 }}
-												transition={{ duration: 0.3 }}
-												className="w-full overflow-y-auto"
-											>
-												<ConversionControls
-													videoMetadata={state.videoMetadata}
-													settings={state.settings}
-													onSettingsChange={handleSettingsChange}
-													disabled={isConverting || isLoading}
-												/>
-											</motion.div>
-										) : (
-											// Result state
-											<motion.div
-												key="result"
-												initial={{ opacity: 0, x: 20 }}
-												animate={{ opacity: 1, x: 0 }}
-												exit={{ opacity: 0 }}
-												transition={{ duration: 0.4 }}
-												className="flex flex-col h-full"
-											>
-												<motion.h3
-													initial={{ opacity: 0, y: -10 }}
-													animate={{ opacity: 1, y: 0 }}
-													className="text-xs font-semibold text-default-500 mb-2 px-1"
-												>
-													CONVERTED GIF
-												</motion.h3>
-												<motion.div
-													initial={{ opacity: 0, scale: 0.95 }}
-													animate={{ opacity: 1, scale: 1 }}
-													transition={{ delay: 0.1, duration: 0.3 }}
-													className="flex-1"
-												>
-													<Card className="h-full flex flex-col">
-														<CardBody className="p-3 flex-1 flex items-center justify-center overflow-hidden">
-															<img
-																src={
-																	state.gifBlob
-																		? URL.createObjectURL(state.gifBlob)
-																		: ""
-																}
-																alt="Converted GIF"
-																className="w-full h-auto object-contain rounded-lg"
-																style={{ maxHeight: "calc(100vh - 380px)" }}
-															/>
-														</CardBody>
-													</Card>
-												</motion.div>
-												<motion.div
-													initial={{ opacity: 0, y: 20 }}
-													animate={{ opacity: 1, y: 0 }}
-													transition={{ delay: 0.2, duration: 0.3 }}
-													className="mt-3 p-4 rounded-lg bg-success-50 dark:bg-success-950/20 border border-success-200 dark:border-success-800"
-												>
-													<div className="flex items-start gap-3">
-														<motion.svg
-															initial={{ scale: 0 }}
-															animate={{ scale: 1 }}
-															transition={{
-																delay: 0.3,
-																type: "spring",
-																stiffness: 200,
-																damping: 10,
-															}}
-															className="w-5 h-5 text-success-600 dark:text-success-400 flex-shrink-0 mt-0.5"
-															fill="none"
-															stroke="currentColor"
-															viewBox="0 0 24 24"
-														>
-															<path
-																strokeLinecap="round"
-																strokeLinejoin="round"
-																strokeWidth={2}
-																d="M5 13l4 4L19 7"
-															/>
-														</motion.svg>
-														<div className="flex-1">
-															<p className="text-sm font-semibold text-success-700 dark:text-success-400 mb-2">
-																Conversion Complete!
-															</p>
-															<div className="grid grid-cols-2 gap-2 text-xs">
-																<div>
-																	<span className="text-success-600 dark:text-success-500">
-																		Output size:
-																	</span>
-																	<p className="font-semibold text-success-700 dark:text-success-400">
-																		{(state.gifBlob.size / (1024 * 1024)).toFixed(
-																			2,
-																		)}{" "}
-																		MB
-																	</p>
-																</div>
-																<div>
-																	<span className="text-success-600 dark:text-success-500">
-																		Settings:
-																	</span>
-																	<p className="font-semibold text-success-700 dark:text-success-400">
-																		{state.settings.quality}% •{" "}
-																		{state.settings.frameRate}
-																		fps • {state.settings.width}px
-																	</p>
-																</div>
-															</div>
-														</div>
-													</div>
-												</motion.div>
-											</motion.div>
-										)}
-									</AnimatePresence>
+									<Card className="overflow-hidden border-2 border-success-200 shadow-success-500/10 shadow-xl dark:border-success-800">
+										<CardBody className="p-0">
+											<img
+												src={URL.createObjectURL(state.gifBlob)}
+												alt="Converted GIF"
+												className="h-auto w-full object-contain"
+											/>
+										</CardBody>
+									</Card>
 								</motion.div>
 							</motion.div>
 						)}
 
 						{/* Loading metadata state */}
 						{state.uploadedFile && !state.videoMetadata && (
-							<div className="max-w-4xl mx-auto">
+							<div className="mx-auto max-w-4xl">
 								<VideoPreview
 									file={state.uploadedFile}
 									onMetadataLoad={handleMetadataLoad}
@@ -728,17 +970,17 @@ export default function VideoConverterPage() {
 						{/* Conversion progress */}
 						{(state.conversionStatus === "processing" ||
 							state.conversionStatus === "loading") && (
-								<div className="max-w-2xl mx-auto mt-6">
-									<ConversionProgress
-										progress={state.progress}
-										status={state.conversionStatus}
-										message={state.error?.message}
-									/>
-								</div>
-							)}
+							<div className="mx-auto mt-6 max-w-2xl">
+								<ConversionProgress
+									progress={state.progress}
+									status={state.conversionStatus}
+									message={state.error?.message}
+								/>
+							</div>
+						)}
 					</div>
 				</div>
-			</div>
-		</DefaultLayout>
+			</DefaultLayout>
+		</>
 	);
 }

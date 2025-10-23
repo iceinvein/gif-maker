@@ -19,6 +19,8 @@ export interface ConversionSettings {
 	frameRate: number; // 10, 15, 20, 24, 30, default: 15
 	width: number; // 100-1920, default: min(videoWidth, 800)
 	height: number; // calculated to maintain aspect ratio
+	startTime: number; // trim start time in seconds, default: 0
+	endTime: number; // trim end time in seconds, default: video duration
 }
 
 export interface ConversionProgress {

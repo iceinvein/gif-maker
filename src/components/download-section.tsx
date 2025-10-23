@@ -70,26 +70,26 @@ const DownloadSectionComponent: FC<DownloadSectionProps> = ({
 
 	return (
 		<Card className="w-full">
-			<CardBody className="gap-3 sm:gap-4 p-3 sm:p-4">
+			<CardBody className="gap-3 p-3 sm:gap-4 sm:p-4">
 				<div className="flex flex-col gap-1 sm:gap-2">
-					<h3 className="text-base sm:text-lg font-semibold text-foreground">
+					<h3 className="font-semibold text-base text-foreground sm:text-lg">
 						Download Your GIF
 					</h3>
-					<div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm text-default-600">
-						<span className="font-medium break-all">{gifFilename}</span>
+					<div className="flex flex-col gap-1 text-default-600 text-xs sm:flex-row sm:items-center sm:gap-2 sm:text-sm">
+						<span className="break-all font-medium">{gifFilename}</span>
 						<span className="hidden sm:inline">•</span>
 						<span>{formattedSize}</span>
 					</div>
 				</div>
 
-				<div className="flex flex-col sm:flex-row gap-3">
+				<div className="flex flex-col gap-3 sm:flex-row">
 					<Button
 						as="a"
 						href={downloadUrl}
 						download={gifFilename}
 						color="primary"
 						size="lg"
-						className="flex-1 min-h-[44px]"
+						className="min-h-11 flex-1"
 					>
 						Download GIF
 					</Button>
@@ -98,7 +98,7 @@ const DownloadSectionComponent: FC<DownloadSectionProps> = ({
 						onPress={onReset}
 						variant="bordered"
 						size="lg"
-						className="flex-1 min-h-[44px]"
+						className="min-h-11 flex-1"
 					>
 						Convert Another
 					</Button>

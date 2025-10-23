@@ -36,14 +36,14 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
 	}, []);
 
 	// Prevent Hydration Mismatch
-	if (!isMounted) return <div className="w-6 h-6" />;
+	if (!isMounted) return <div className="h-6 w-6" />;
 
 	return (
 		<Component
 			aria-label={isSelected ? "Switch to dark mode" : "Switch to light mode"}
 			{...getBaseProps({
 				className: clsx(
-					"px-px transition-opacity hover:opacity-80 cursor-pointer",
+					"cursor-pointer px-px transition-opacity hover:opacity-80",
 					className,
 					classNames?.base,
 				),
@@ -57,12 +57,12 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
 				className={slots.wrapper({
 					class: clsx(
 						[
-							"w-auto h-auto",
+							"h-auto w-auto",
 							"bg-transparent",
 							"rounded-lg",
 							"flex items-center justify-center",
 							"group-data-[selected=true]:bg-transparent",
-							"!text-default-500",
+							"text-default-500!",
 							"pt-px",
 							"px-0",
 							"mx-0",

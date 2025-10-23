@@ -1,143 +1,160 @@
 import { Card, CardBody } from "@heroui/card";
-import { type FC, memo, useEffect, useRef, useState } from "react";
+import {
+	forwardRef,
+	memo,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
 import type { VideoMetadata } from "@/types";
 
 interface VideoPreviewProps {
 	file: File;
 	onMetadataLoad: (metadata: VideoMetadata) => void;
+	onTimeUpdate?: (currentTime: number) => void;
+	seekTime?: number;
 }
 
-const formatDuration = (seconds: number): string => {
-	const mins = Math.floor(seconds / 60);
-	const secs = Math.floor(seconds % 60);
-	return `${mins}:${secs.toString().padStart(2, "0")}`;
-};
+export interface VideoPreviewRef {
+	seek: (time: number) => void;
+	getCurrentTime: () => number;
+	getVideoElement: () => HTMLVideoElement | null;
+	play: () => Promise<void>;
+	pause: () => void;
+	togglePlayPause: () => Promise<void>;
+}
 
-const formatFileSize = (bytes: number): string => {
-	if (bytes < 1024) return `${bytes} B`;
-	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
+const VideoPreviewComponent = forwardRef<VideoPreviewRef, VideoPreviewProps>(
+	({ file, onMetadataLoad, onTimeUpdate, seekTime }, ref) => {
+		const [videoUrl, setVideoUrl] = useState<string | null>(null);
+		const videoRef = useRef<HTMLVideoElement>(null);
 
-const VideoPreviewComponent: FC<VideoPreviewProps> = ({
-	file,
-	onMetadataLoad,
-}) => {
-	const [videoUrl, setVideoUrl] = useState<string | null>(null);
-	const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
-	const videoRef = useRef<HTMLVideoElement>(null);
+		// Expose methods to parent via ref
+		useImperativeHandle(ref, () => ({
+			seek: (time: number) => {
+				if (videoRef.current && Number.isFinite(time)) {
+					videoRef.current.currentTime = time;
+				}
+			},
+			getCurrentTime: () => {
+				return videoRef.current?.currentTime ?? 0;
+			},
+			getVideoElement: () => {
+				return videoRef.current;
+			},
+			play: async () => {
+				if (videoRef.current) {
+					await videoRef.current.play();
+				}
+			},
+			pause: () => {
+				if (videoRef.current) {
+					videoRef.current.pause();
+				}
+			},
+			togglePlayPause: async () => {
+				if (videoRef.current) {
+					if (videoRef.current.paused) {
+						await videoRef.current.play();
+					} else {
+						videoRef.current.pause();
+					}
+				}
+			},
+		}));
 
-	useEffect(() => {
-		// Create object URL for video preview
-		const url = URL.createObjectURL(file);
-		setVideoUrl(url);
+		useEffect(() => {
+			// Create object URL for video preview
+			const url = URL.createObjectURL(file);
+			setVideoUrl(url);
 
-		// Cleanup function to revoke object URL on unmount or file change
-		// Performance: Proper memory cleanup for object URLs
-		return () => {
-			URL.revokeObjectURL(url);
-			setVideoUrl(null);
-			setMetadata(null);
-		};
-	}, [file]);
+			// Cleanup function to revoke object URL on unmount or file change
+			// Performance: Proper memory cleanup for object URLs
+			return () => {
+				URL.revokeObjectURL(url);
+				setVideoUrl(null);
+			};
+		}, [file]);
 
-	const handleLoadedMetadata = () => {
-		const video = videoRef.current;
-		if (!video) return;
+		// Handle seek time changes from parent
+		useEffect(() => {
+			if (seekTime !== undefined && videoRef.current) {
+				videoRef.current.currentTime = seekTime;
+			}
+		}, [seekTime]);
 
-		// Extract video metadata
-		const width = video.videoWidth;
-		const height = video.videoHeight;
-		const duration = video.duration;
-		const aspectRatio = width / height;
+		const handleLoadedMetadata = () => {
+			const video = videoRef.current;
+			if (!video) return;
 
-		// Attempt to get frame rate (not always available in browsers)
-		// Default to 30 if not available or invalid
-		let frameRate = 30;
+			// Extract video metadata
+			const width = video.videoWidth;
+			const height = video.videoHeight;
+			const duration = video.duration;
+			const aspectRatio = width / height;
 
-		// Some browsers expose frame rate through getVideoPlaybackQuality
-		if ("getVideoPlaybackQuality" in video) {
-			const quality = video.getVideoPlaybackQuality();
-			if (quality && "totalVideoFrames" in quality && duration > 0) {
-				const calculatedFps = Math.round(
-					(quality.totalVideoFrames as number) / duration,
-				);
-				// Only use calculated FPS if it's a reasonable value (between 1 and 120)
-				if (calculatedFps > 0 && calculatedFps <= 120) {
-					frameRate = calculatedFps;
+			// Attempt to get frame rate (not always available in browsers)
+			// Default to 30 if not available or invalid
+			let frameRate = 30;
+
+			// Some browsers expose frame rate through getVideoPlaybackQuality
+			if ("getVideoPlaybackQuality" in video) {
+				const quality = video.getVideoPlaybackQuality();
+				if (quality && "totalVideoFrames" in quality && duration > 0) {
+					const calculatedFps = Math.round(
+						(quality.totalVideoFrames as number) / duration,
+					);
+					// Only use calculated FPS if it's a reasonable value (between 1 and 120)
+					if (calculatedFps > 0 && calculatedFps <= 120) {
+						frameRate = calculatedFps;
+					}
 				}
 			}
-		}
 
-		const videoMetadata: VideoMetadata = {
-			duration,
-			width,
-			height,
-			frameRate,
-			aspectRatio,
+			const videoMetadata: VideoMetadata = {
+				duration,
+				width,
+				height,
+				frameRate,
+				aspectRatio,
+			};
+
+			onMetadataLoad(videoMetadata);
 		};
 
-		setMetadata(videoMetadata);
-		onMetadataLoad(videoMetadata);
-	};
+		const handleTimeUpdate = () => {
+			if (onTimeUpdate && videoRef.current) {
+				onTimeUpdate(videoRef.current.currentTime);
+			}
+		};
 
-	return (
-		<Card className="w-full h-full flex flex-col">
-			<CardBody className="p-3 sm:p-4 space-y-3 sm:space-y-4 flex flex-col h-full">
-				<div className="relative w-full rounded-lg overflow-hidden bg-black dark:bg-black flex-1 flex items-center justify-center">
-					{videoUrl && (
-						<video
-							ref={videoRef}
-							src={videoUrl}
-							controls
-							className="w-full h-full object-contain"
-							style={{ maxHeight: "calc(100vh - 280px)" }}
-							onLoadedMetadata={handleLoadedMetadata}
-							aria-label="Video preview"
-						>
-							Your browser does not support the video tag.
-						</video>
-					)}
-				</div>
-
-				{metadata && (
-					<div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm p-2 rounded-lg bg-default-100 dark:bg-default-50/5">
-						<div className="space-y-1">
-							<p className="text-default-500 dark:text-default-400">Duration</p>
-							<p className="font-semibold text-foreground">
-								{formatDuration(metadata.duration)}
-							</p>
-						</div>
-						<div className="space-y-1">
-							<p className="text-default-500 dark:text-default-400">
-								Dimensions
-							</p>
-							<p className="font-semibold text-foreground break-all">
-								{metadata.width} × {metadata.height}px
-							</p>
-						</div>
-						<div className="space-y-1">
-							<p className="text-default-500 dark:text-default-400">
-								Frame Rate
-							</p>
-							<p className="font-semibold text-foreground">
-								{metadata.frameRate} fps
-							</p>
-						</div>
-						<div className="space-y-1">
-							<p className="text-default-500 dark:text-default-400">
-								File Size
-							</p>
-							<p className="font-semibold text-foreground">
-								{formatFileSize(file.size)}
-							</p>
-						</div>
+		return (
+			<Card className="flex h-full w-full flex-col">
+				<CardBody className="flex h-full flex-col space-y-3 p-3 sm:space-y-4 sm:p-4">
+					<div className="relative flex w-full flex-1 items-center justify-center overflow-hidden rounded-lg bg-black dark:bg-black">
+						{videoUrl && (
+							<video
+								ref={videoRef}
+								src={videoUrl}
+								controls
+								className="h-full w-full object-contain"
+								style={{ maxHeight: "calc(50dvh)" }}
+								onLoadedMetadata={handleLoadedMetadata}
+								onTimeUpdate={handleTimeUpdate}
+								aria-label="Video preview"
+							>
+								Your browser does not support the video tag.
+							</video>
+						)}
 					</div>
-				)}
-			</CardBody>
-		</Card>
-	);
-};
+				</CardBody>
+			</Card>
+		);
+	},
+);
+
+VideoPreviewComponent.displayName = "VideoPreview";
 
 // Performance: Memoize component to prevent unnecessary re-renders
 export const VideoPreview = memo(VideoPreviewComponent);

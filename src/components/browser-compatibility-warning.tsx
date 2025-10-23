@@ -13,12 +13,12 @@ export const BrowserCompatibilityWarning: FC<
 	BrowserCompatibilityWarningProps
 > = ({ missingFeatures }) => {
 	return (
-		<Card className="border-2 border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/20">
-			<CardBody className="gap-3 sm:gap-4 p-3 sm:p-4">
+		<Card className="border-2 border-warning-200 bg-warning-50 dark:border-warning-800 dark:bg-warning-950/20">
+			<CardBody className="gap-3 p-3 sm:gap-4 sm:p-4">
 				<div className="flex items-start gap-2 sm:gap-3">
-					<div className="flex-shrink-0 text-warning-600 dark:text-warning-400 min-w-[24px]">
+					<div className="min-w-6 shrink-0 text-warning-600 dark:text-warning-400">
 						<svg
-							className="w-5 h-5 sm:w-6 sm:h-6"
+							className="h-5 w-5 sm:h-6 sm:w-6"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -32,22 +32,22 @@ export const BrowserCompatibilityWarning: FC<
 						</svg>
 					</div>
 					<div className="flex-1 space-y-1 sm:space-y-2">
-						<h3 className="text-base sm:text-lg font-semibold text-warning-700 dark:text-warning-300">
+						<h3 className="font-semibold text-base text-warning-700 sm:text-lg dark:text-warning-300">
 							Browser Compatibility Issue
 						</h3>
-						<p className="text-xs sm:text-sm text-warning-600 dark:text-warning-400">
+						<p className="text-warning-600 text-xs sm:text-sm dark:text-warning-400">
 							Your browser does not support some features required for video
 							conversion:
 						</p>
-						<ul className="list-disc list-inside text-xs sm:text-sm text-warning-600 dark:text-warning-400 space-y-1">
+						<ul className="list-inside list-disc space-y-1 text-warning-600 text-xs sm:text-sm dark:text-warning-400">
 							{missingFeatures.map((feature) => (
 								<li key={feature}>{feature}</li>
 							))}
 						</ul>
-						<p className="text-xs sm:text-sm text-warning-600 dark:text-warning-400 mt-2 sm:mt-3">
+						<p className="mt-2 text-warning-600 text-xs sm:mt-3 sm:text-sm dark:text-warning-400">
 							Please use one of the following browsers for the best experience:
 						</p>
-						<ul className="list-disc list-inside text-xs sm:text-sm text-warning-600 dark:text-warning-400 space-y-1">
+						<ul className="list-inside list-disc space-y-1 text-warning-600 text-xs sm:text-sm dark:text-warning-400">
 							<li>Chrome/Edge (version 90 or later)</li>
 							<li>Firefox (version 88 or later)</li>
 							<li>Safari (version 15 or later)</li>

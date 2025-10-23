@@ -1,14 +1,18 @@
 import { Navbar } from "@/components/navbar";
 
+interface DefaultLayoutProps {
+	children: React.ReactNode;
+	onHelpClick?: () => void;
+}
+
 export default function DefaultLayout({
 	children,
-}: {
-	children: React.ReactNode;
-}) {
+	onHelpClick,
+}: DefaultLayoutProps) {
 	return (
-		<div className="relative flex flex-col h-screen bg-background">
-			<Navbar />
-			<main className="flex-grow">{children}</main>
+		<div className="relative flex h-screen flex-col bg-background">
+			<Navbar onHelpClick={onHelpClick} />
+			<main className="grow">{children}</main>
 		</div>
 	);
 }

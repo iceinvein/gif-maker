@@ -6,6 +6,8 @@ export interface ConversionSettings {
 	frameRate: number; // 10, 15, 20, 24, 30
 	width: number; // 100-1920
 	height: number; // calculated from aspect ratio
+	startTime: number; // trim start time in seconds
+	endTime: number; // trim end time in seconds
 }
 
 export interface FFmpegServiceInterface {
@@ -216,15 +218,16 @@ class FFmpegServiceImpl implements FFmpegServiceInterface {
 	}
 
 	/**
-	 * Build FFmpeg command with quality, frame rate, and dimension parameters
+	 * Build FFmpeg command with quality, frame rate, dimension, and trim parameters
 	 * Uses two-pass palette generation for optimal GIF quality
+	 * Supports video trimming with -ss (start time) and -t (duration)
 	 */
 	private buildFFmpegCommand(
 		inputFile: string,
 		outputFile: string,
 		settings: ConversionSettings,
 	): string[] {
-		const { quality, frameRate, width, height } = settings;
+		const { quality, frameRate, width, height, startTime, endTime } = settings;
 
 		// Calculate max colors based on quality (1-100 -> 16-256 colors)
 		const maxColors = Math.floor(16 + (quality / 100) * 240);
@@ -243,15 +246,27 @@ class FFmpegServiceImpl implements FFmpegServiceInterface {
 			"[s1][p]paletteuse=dither=bayer:bayer_scale=5",
 		].join(",");
 
-		return [
+		// Calculate trim duration
+		const trimDuration = endTime - startTime;
+
+		// Build command with trim parameters
+		// -ss: seek to start time (before -i for faster seeking)
+		// -t: duration to process
+		const command = [
+			"-ss",
+			startTime.toFixed(3), // Start time in seconds with millisecond precision
 			"-i",
 			inputFile,
+			"-t",
+			trimDuration.toFixed(3), // Duration in seconds with millisecond precision
 			"-vf",
 			filterComplex,
 			"-loop",
 			"0", // Infinite loop
 			outputFile,
 		];
+
+		return command;
 	}
 
 	/**

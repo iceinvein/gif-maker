@@ -61,12 +61,12 @@ const ConversionProgressComponent: FC<ConversionProgressProps> = ({
 
 	return (
 		<div className="w-full space-y-2 sm:space-y-3">
-			<div className="flex justify-between items-center gap-2">
-				<span className="text-xs sm:text-sm font-medium text-foreground">
+			<div className="flex items-center justify-between gap-2">
+				<span className="font-medium text-foreground text-xs sm:text-sm">
 					{displayMessage}
 				</span>
 				{status === "processing" && (
-					<span className="text-xs sm:text-sm font-semibold text-primary whitespace-nowrap">
+					<span className="whitespace-nowrap font-semibold text-primary text-xs sm:text-sm">
 						{Math.round(progress)}%
 					</span>
 				)}
@@ -82,16 +82,16 @@ const ConversionProgressComponent: FC<ConversionProgressProps> = ({
 			/>
 
 			{status === "error" && message && (
-				<div className="p-3 sm:p-4 rounded-lg bg-danger-50 dark:bg-danger-950/20 border border-danger-200 dark:border-danger-800">
-					<p className="text-xs sm:text-sm text-danger-600 dark:text-danger-400">
+				<div className="rounded-lg border border-danger-200 bg-danger-50 p-3 sm:p-4 dark:border-danger-800 dark:bg-danger-950/20">
+					<p className="text-danger-600 text-xs sm:text-sm dark:text-danger-400">
 						{message}
 					</p>
 				</div>
 			)}
 
 			{status === "complete" && (
-				<div className="p-3 sm:p-4 rounded-lg bg-success-50 dark:bg-success-950/20 border border-success-200 dark:border-success-800">
-					<p className="text-xs sm:text-sm text-success-600 dark:text-success-400">
+				<div className="rounded-lg border border-success-200 bg-success-50 p-3 sm:p-4 dark:border-success-800 dark:bg-success-950/20">
+					<p className="text-success-600 text-xs sm:text-sm dark:text-success-400">
 						✓ Your GIF is ready to download!
 					</p>
 				</div>

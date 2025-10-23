@@ -24,12 +24,12 @@ export const FileSizeWarning: FC<FileSizeWarningProps> = ({
 	const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
 
 	return (
-		<Card className="border-2 border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-950/20">
-			<CardBody className="gap-2 sm:gap-3 p-3 sm:p-4">
+		<Card className="border-2 border-warning-200 bg-warning-50 dark:border-warning-800 dark:bg-warning-950/20">
+			<CardBody className="gap-2 p-3 sm:gap-3 sm:p-4">
 				<div className="flex items-start gap-2 sm:gap-3">
-					<div className="flex-shrink-0 text-warning-600 dark:text-warning-400 min-w-[24px]">
+					<div className="min-w-6 shrink-0 text-warning-600 dark:text-warning-400">
 						<svg
-							className="w-5 h-5 sm:w-6 sm:h-6"
+							className="h-5 w-5 sm:h-6 sm:w-6"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -43,17 +43,17 @@ export const FileSizeWarning: FC<FileSizeWarningProps> = ({
 						</svg>
 					</div>
 					<div className="flex-1 space-y-1 sm:space-y-2">
-						<h3 className="text-base sm:text-lg font-semibold text-warning-700 dark:text-warning-300">
+						<h3 className="font-semibold text-base text-warning-700 sm:text-lg dark:text-warning-300">
 							Large File Warning
 						</h3>
-						<p className="text-xs sm:text-sm text-warning-600 dark:text-warning-400">
+						<p className="text-warning-600 text-xs sm:text-sm dark:text-warning-400">
 							The file <strong className="break-all">{fileName}</strong> is{" "}
 							{fileSizeMB}MB, which may take longer to process and could cause
 							performance issues.
 						</p>
-						<div className="text-xs sm:text-sm text-warning-600 dark:text-warning-400 space-y-1">
+						<div className="space-y-1 text-warning-600 text-xs sm:text-sm dark:text-warning-400">
 							<p className="font-semibold">Recommendations:</p>
-							<ul className="list-disc list-inside space-y-1 ml-2">
+							<ul className="ml-2 list-inside list-disc space-y-1">
 								<li>Consider using a shorter video clip</li>
 								<li>Reduce the output dimensions (width/height)</li>
 								<li>Lower the quality setting</li>

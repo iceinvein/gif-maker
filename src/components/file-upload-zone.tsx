@@ -117,20 +117,20 @@ const FileUploadZoneComponent: FC<FileUploadZoneProps> = ({
 					"border-default-300 hover:border-primary hover:bg-default-100":
 						!isDragActive && !disabled,
 					"border-danger bg-danger-50 dark:bg-danger-950/20": error,
-					"opacity-50 cursor-not-allowed": disabled,
+					"cursor-not-allowed opacity-50": disabled,
 				})}
 			>
 				<CardBody
-					className="py-10 sm:py-12 md:py-14 px-6"
+					className="px-6 py-10 sm:py-12 md:py-14"
 					onDragEnter={handleDragEnter}
 					onDragLeave={handleDragLeave}
 					onDragOver={handleDragOver}
 					onDrop={handleDrop}
 				>
-					<div className="flex flex-col items-center justify-center gap-4 sm:gap-5 text-center min-h-[180px] sm:min-h-[200px]">
+					<div className="flex min-h-[180px] flex-col items-center justify-center gap-4 text-center sm:min-h-[200px] sm:gap-5">
 						<div
 							className={clsx(
-								"rounded-full p-5 sm:p-6 transition-colors min-w-[80px] min-h-[80px] flex items-center justify-center",
+								"flex min-h-20 min-w-20 items-center justify-center rounded-full p-5 transition-colors sm:p-6",
 								{
 									"bg-primary-100 dark:bg-primary-900/30":
 										isDragActive && !disabled,
@@ -140,7 +140,7 @@ const FileUploadZoneComponent: FC<FileUploadZoneProps> = ({
 							)}
 						>
 							<svg
-								className={clsx("w-14 h-14 sm:w-16 sm:h-16", {
+								className={clsx("h-14 w-14 sm:h-16 sm:w-16", {
 									"text-primary": isDragActive && !disabled,
 									"text-default-400": !isDragActive && !error,
 									"text-danger": error,
@@ -159,16 +159,16 @@ const FileUploadZoneComponent: FC<FileUploadZoneProps> = ({
 							</svg>
 						</div>
 
-						<div className="space-y-2 sm:space-y-3 px-2">
-							<p className="text-xl sm:text-2xl font-semibold text-foreground">
+						<div className="space-y-2 px-2 sm:space-y-3">
+							<p className="font-semibold text-foreground text-xl sm:text-2xl">
 								{isDragActive
 									? "Drop your video here"
 									: "Drag and drop your video"}
 							</p>
-							<p className="text-sm sm:text-base text-default-500">
+							<p className="text-default-500 text-sm sm:text-base">
 								or click to browse files
 							</p>
-							<p className="text-xs sm:text-sm text-default-400">
+							<p className="text-default-400 text-xs sm:text-sm">
 								Supported formats: MP4, WebM, MOV, AVI (max 500MB)
 							</p>
 						</div>
@@ -187,8 +187,8 @@ const FileUploadZoneComponent: FC<FileUploadZoneProps> = ({
 			</Card>
 
 			{error && (
-				<div className="mt-3 p-3 sm:p-4 rounded-lg bg-danger-50 dark:bg-danger-950/20 border border-danger-200 dark:border-danger-800">
-					<p className="text-xs sm:text-sm text-danger-600 dark:text-danger-400">
+				<div className="mt-3 rounded-lg border border-danger-200 bg-danger-50 p-3 sm:p-4 dark:border-danger-800 dark:bg-danger-950/20">
+					<p className="text-danger-600 text-xs sm:text-sm dark:text-danger-400">
 						{error}
 					</p>
 				</div>

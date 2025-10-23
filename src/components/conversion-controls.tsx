@@ -73,14 +73,14 @@ const ConversionControlsComponent: FC<ConversionControlsProps> = ({
 
 	return (
 		<Card className="w-full">
-			<CardHeader className="pb-2 px-3 sm:px-4">
-				<h3 className="text-base sm:text-lg font-semibold text-foreground">
+			<CardHeader className="px-3 pb-2 sm:px-4">
+				<h3 className="font-semibold text-base text-foreground sm:text-lg">
 					Conversion Settings
 				</h3>
 			</CardHeader>
-			<CardBody className="space-y-5 sm:space-y-6 px-3 sm:px-4">
+			<CardBody className="space-y-5 px-3 sm:space-y-6 sm:px-4">
 				{/* Quality Slider */}
-				<div className="space-y-2 touch-manipulation">
+				<div className="touch-manipulation space-y-2">
 					<Slider
 						label="Quality"
 						minValue={1}
@@ -98,7 +98,7 @@ const ConversionControlsComponent: FC<ConversionControlsProps> = ({
 							{ value: 100, label: "100" },
 						]}
 					/>
-					<div className="flex justify-between items-center text-xs sm:text-sm min-h-[44px] sm:min-h-0">
+					<div className="flex min-h-11 items-center justify-between text-xs sm:min-h-0 sm:text-sm">
 						<span className="text-default-500">Current value:</span>
 						<span className="font-semibold text-foreground">
 							{settings.quality}%
@@ -107,7 +107,7 @@ const ConversionControlsComponent: FC<ConversionControlsProps> = ({
 				</div>
 
 				{/* Frame Rate Selector */}
-				<div className="space-y-2 touch-manipulation">
+				<div className="touch-manipulation space-y-2">
 					<Select
 						label="Frame Rate"
 						selectedKeys={[settings.frameRate.toString()]}
@@ -116,7 +116,7 @@ const ConversionControlsComponent: FC<ConversionControlsProps> = ({
 						className="w-full"
 						aria-label="Frame rate selector"
 						classNames={{
-							trigger: "min-h-[44px]",
+							trigger: "min-h-11",
 						}}
 					>
 						{FRAME_RATE_OPTIONS.map((option) => (
@@ -125,15 +125,15 @@ const ConversionControlsComponent: FC<ConversionControlsProps> = ({
 							</SelectItem>
 						))}
 					</Select>
-					<div className="flex justify-between items-center text-xs sm:text-sm">
+					<div className="flex items-center justify-between text-xs sm:text-sm">
 						<span className="text-default-500">Selected:</span>
 						<span className="font-semibold text-foreground">
 							{settings.frameRate} fps
 						</span>
 					</div>
 					{showFrameRateWarning && (
-						<div className="p-2 sm:p-3 rounded-lg bg-warning-50 dark:bg-warning-950/20 border border-warning-200 dark:border-warning-800">
-							<p className="text-xs text-warning-600 dark:text-warning-400">
+						<div className="rounded-lg border border-warning-200 bg-warning-50 p-2 sm:p-3 dark:border-warning-800 dark:bg-warning-950/20">
+							<p className="text-warning-600 text-xs dark:text-warning-400">
 								⚠️ Selected frame rate ({settings.frameRate} fps) exceeds source
 								video frame rate ({videoMetadata.frameRate} fps). This may not
 								improve quality.
@@ -143,7 +143,7 @@ const ConversionControlsComponent: FC<ConversionControlsProps> = ({
 				</div>
 
 				{/* Width Slider */}
-				<div className="space-y-2 touch-manipulation">
+				<div className="touch-manipulation space-y-2">
 					<Slider
 						label="Width"
 						minValue={100}
@@ -174,10 +174,10 @@ const ConversionControlsComponent: FC<ConversionControlsProps> = ({
 							return marks;
 						})()}
 					/>
-					<div className="flex justify-between items-center text-xs sm:text-sm min-h-[44px] sm:min-h-0">
+					<div className="flex min-h-11 items-center justify-between text-xs sm:min-h-0 sm:text-sm">
 						<span className="text-default-500">Dimensions:</span>
 						<span className="font-semibold text-foreground">
-							{settings.width} × {settings.height}px
+							{settings.width} x {settings.height}px
 						</span>
 					</div>
 				</div>

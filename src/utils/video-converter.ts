@@ -126,6 +126,8 @@ export function getDefaultSettings(
 		frameRate: 15,
 		width: defaultWidth,
 		height: defaultHeight,
+		startTime: 0,
+		endTime: videoMetadata.duration,
 	};
 }
 

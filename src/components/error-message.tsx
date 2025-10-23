@@ -27,7 +27,7 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({
 			case "upload":
 				return (
 					<svg
-						className="w-6 h-6"
+						className="h-6 w-6"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -43,7 +43,7 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({
 			case "ffmpeg":
 				return (
 					<svg
-						className="w-6 h-6"
+						className="h-6 w-6"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -59,7 +59,7 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({
 			case "conversion":
 				return (
 					<svg
-						className="w-6 h-6"
+						className="h-6 w-6"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -75,7 +75,7 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({
 			default:
 				return (
 					<svg
-						className="w-6 h-6"
+						className="h-6 w-6"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -107,17 +107,17 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({
 	};
 
 	return (
-		<Card className="border-2 border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950/20">
-			<CardBody className="gap-3 sm:gap-4 p-3 sm:p-4">
+		<Card className="border-2 border-danger-200 bg-danger-50 dark:border-danger-800 dark:bg-danger-950/20">
+			<CardBody className="gap-3 p-3 sm:gap-4 sm:p-4">
 				<div className="flex items-start gap-2 sm:gap-3">
-					<div className="flex-shrink-0 text-danger-600 dark:text-danger-400 min-w-[24px]">
+					<div className="min-w-6 shrink-0 text-danger-600 dark:text-danger-400">
 						{getErrorIcon()}
 					</div>
 					<div className="flex-1 space-y-1 sm:space-y-2">
-						<h3 className="text-base sm:text-lg font-semibold text-danger-700 dark:text-danger-300">
+						<h3 className="font-semibold text-base text-danger-700 sm:text-lg dark:text-danger-300">
 							{getErrorTitle()}
 						</h3>
-						<p className="text-xs sm:text-sm text-danger-600 dark:text-danger-400">
+						<p className="text-danger-600 text-xs sm:text-sm dark:text-danger-400">
 							{error.message}
 						</p>
 					</div>
@@ -133,7 +133,7 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({
 								variant="flat"
 								onPress={onRetry}
 								aria-label="Retry the failed operation"
-								className="min-h-[44px] sm:min-h-[36px]"
+								className="min-h-11 sm:min-h-9"
 							>
 								Try Again
 							</Button>
@@ -144,7 +144,7 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({
 								variant="bordered"
 								onPress={onReset}
 								aria-label="Start over with a new file"
-								className="min-h-[44px] sm:min-h-[36px]"
+								className="min-h-11 sm:min-h-9"
 							>
 								Start Over
 							</Button>
@@ -155,7 +155,7 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({
 								variant="light"
 								onPress={onDismiss}
 								aria-label="Dismiss error message"
-								className="min-h-[44px] sm:min-h-[36px]"
+								className="min-h-11 sm:min-h-9"
 							>
 								Dismiss
 							</Button>
